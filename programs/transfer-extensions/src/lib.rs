@@ -4,6 +4,7 @@ use instructions::*;
 pub mod states;
 pub mod seeds;
 pub mod errors;
+pub mod sol_sdk;
 
 declare_id!("4MNxsMM7niQkurWFyDvzhVbD3wHQFyAhnGjrvuYPi6Zu");
 
@@ -47,6 +48,14 @@ pub mod transfer_extensions {
         amount2: u64,
     ) -> Result<()> {
         instructions::multi_transfers(ctx, amount1, amount2)
+    }
+
+    pub fn multi_transfers_heap<'info>(
+        ctx: Context<'_, '_, '_, 'info, MultiTransfers<'info>>,
+        amount1: u64,
+        amount2: u64,
+    ) -> Result<()> {
+        instructions::multi_transfers_heap(ctx, amount1, amount2)
     }
 }
 
