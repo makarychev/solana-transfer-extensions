@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_2022::spl_token_2022::onchain::invoke_transfer_checked;
+// use anchor_spl::token_2022::spl_token_2022::onchain::invoke_transfer_checked;
 use anchor_spl::token_interface::{Mint, Token2022, TokenAccount};
 
-use crate::errors::TransferExtensionsError;
+use crate::{errors::TransferExtensionsError, sol_sdk::invoke_transfer_checked};
 
 #[derive(Accounts)]
 pub struct MultiTransfers<'info> {
@@ -11,24 +11,24 @@ pub struct MultiTransfers<'info> {
       associated_token::mint = mint,
       associated_token::authority = signer,
     )]
-    source_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub source_account: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut,
       token::mint = mint,
       token::token_program = token_program,
     )]
-    destination_account_1: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub destination_account_1: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut,
       token::mint = mint,
       token::token_program = token_program,
     )]
-    destination_account_2: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub destination_account_2: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
       token::token_program = token_program,
     )]
-    mint: Box<InterfaceAccount<'info, Mint>>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(mut)]
-    signer: Signer<'info>,
+    pub signer: Signer<'info>,
 
     #[account(
       constraint = token_program.key() == anchor_spl::token_interface::spl_token_2022::id(),
@@ -52,6 +52,7 @@ pub fn multi_transfers<'info>(
 
     let split_at_pos = ctx.remaining_accounts.len() / 2;
     msg!("Invoke transfer 1");
+    msg!("Source balance: {}", ctx.accounts.source_account.amount);
     invoke_transfer_checked(
         ctx.accounts.token_program.key,
         ctx.accounts.source_account.to_account_info().clone(),

@@ -15,3 +15,6 @@ pub use initialize_mint_counter_out::*;
 
 pub mod multi_transfers;
 pub use multi_transfers::*;
+
+pub mod multi_transfers_heap;
+pub use multi_transfers_heap::*;
