@@ -61,7 +61,8 @@ pub fn get_extra_account_metas(program_id: &Pubkey) -> Result<Vec<ExtraAccountMe
     Ok(vec![
         // [index 5, 0] account manager program id
         ExtraAccountMeta::new_with_pubkey(
-            program_id, false, // is_signer
+            program_id,
+            false, // is_signer
             false, // is_writable
         )?,
         // [index 6, 1] counter in from

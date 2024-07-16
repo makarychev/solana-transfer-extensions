@@ -284,7 +284,81 @@ describe("transfer-extensions", () => {
     console.log("Recipient2 CounterOut transaction signature", recipient2CounterOutTxSignature);
   });
 
+  const COUNTER_IN_SEED = "counter-in";
+  const COUNTER_OUT_SEED = "counter-out";
+  const GLOBAL_PROGRAM_DATA_SEED = "global-program-data";
+  let recipient1walletCounterInPda: PublicKey;
+  let recipient1walletCounterOutPda: PublicKey;
+  let recipient2walletCounterInPda: PublicKey;
+  let recipient2walletCounterOutPda: PublicKey;
+  let mintCounterInPda: PublicKey;
+  let mintCounterOutPda: PublicKey;
+  let globalProgramDataPda: PublicKey;
+  let senderWalletCounterInPda: PublicKey;
+  let senderWalletCounterOutPda: PublicKey;
   it("multiple transfers", async () => {
+    [recipient1walletCounterInPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_IN_SEED),
+        recipientTokenAccountPubkey.toBuffer(),
+      ],
+      program.programId
+    );
+    [recipient1walletCounterOutPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_OUT_SEED),
+        recipientTokenAccountPubkey.toBuffer(),
+      ],
+      program.programId
+    );
+    [recipient2walletCounterInPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_IN_SEED),
+        recipient2TokenAccountPubkey.toBuffer(),
+      ],
+      program.programId
+    );
+    [recipient2walletCounterOutPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_OUT_SEED),
+        recipient2TokenAccountPubkey.toBuffer(),
+      ],
+      program.programId
+    );
+    [mintCounterInPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_IN_SEED),
+        mint.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    [mintCounterOutPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_OUT_SEED),
+        mint.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    [globalProgramDataPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(GLOBAL_PROGRAM_DATA_SEED),
+      ],
+      program.programId
+    );
+    [senderWalletCounterInPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_IN_SEED),
+        senderTokenAccountPubkey.toBuffer(),
+      ],
+      program.programId
+    );
+    [senderWalletCounterOutPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from(COUNTER_OUT_SEED),
+        senderTokenAccountPubkey.toBuffer(),
+      ],
+      program.programId
+    );
     // 1 tokens
     const amount1 = 1 * 10 ** decimals;
     const amount2 = 2 * 10 ** decimals;
@@ -337,8 +411,29 @@ describe("transfer-extensions", () => {
     );
     const modifyComputeUnitsInstruction =
       ComputeBudgetProgram.setComputeUnitLimit({
-        units: 400000,
+        units: 1000000,
       });
+
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+    console.log("Recipient1AssocAccount:", recipientTokenAccountPubkey.toString());
+    console.log("Recipient2AssocAccount:", recipient2TokenAccountPubkey.toString());
+    console.log("mint:", mint.publicKey.toString());
+    console.log("SenderAssocAccount:", senderTokenAccountPubkey.toString());
+    console.log("Sender Wallet Counter In PDA:", senderWalletCounterInPda.toString());
+    console.log("Sender Wallet Counter Out PDA:", senderWalletCounterOutPda.toString());
+    console.log("Recipient1 Wallet Counter In PDA:", recipient1walletCounterInPda.toString());
+    console.log("Recipient2 Wallet Counter In PDA:", recipient2walletCounterInPda.toString());
+    console.log("Recipient1 Wallet Counter Out PDA:", recipient1walletCounterOutPda.toString());
+    console.log("Recipient2 Wallet Counter Out PDA:", recipient2walletCounterOutPda.toString());
+    console.log("Mint Counter In PDA:", mintCounterInPda.toString());
+    console.log("Mint Counter Out PDA:", mintCounterOutPda.toString());
+    console.log("Global Program Data PDA:", globalProgramDataPda.toString());
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+
 
     const transaction = new Transaction().add(...[modifyComputeUnitsInstruction, multiTransfersInstruction]);
     try {
@@ -356,5 +451,90 @@ describe("transfer-extensions", () => {
 
     const tokenAccount = await getAccount(provider.connection, recipient2TokenAccountPubkey, undefined, TOKEN_2022_PROGRAM_ID);
     assert.equal(Number(tokenAccount.amount), amount2);
+  });
+
+  it("multiple transfers heap size", async () => {
+    const amount1 = 1 * 10 ** decimals;
+    const amount2 = 2 * 10 ** decimals;
+
+    const multiTransfersInstruction = program.instruction.multiTransfersHeap(
+      new anchor.BN(amount1),
+      new anchor.BN(amount2),
+      {
+        accounts: {
+          sourceAccount: senderTokenAccountPubkey,
+          destinationAccount1: recipientTokenAccountPubkey,
+          destinationAccount2: recipient2TokenAccountPubkey,
+          mint: mint.publicKey,
+          signer: sender.publicKey,
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+        },
+        signers: [sender],
+      })
+    const mintInfo = await getMint(
+      provider.connection,
+      mint.publicKey,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+    const transferHook = getTransferHook(mintInfo);
+    assert.ok(transferHook);
+
+    await addExtraAccountMetasForExecute(
+      provider.connection,
+      multiTransfersInstruction,
+      transferHook.programId,
+      senderTokenAccountPubkey,
+      mint.publicKey,
+      recipientTokenAccountPubkey,
+      sender.publicKey,
+      amount1,
+      undefined
+    );
+
+    const modifyComputeUnitsInstruction =
+      ComputeBudgetProgram.setComputeUnitLimit({
+        units: 400000,
+      });
+
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+    console.log("Recipient1AssocAccount:", recipientTokenAccountPubkey.toString());
+    console.log("Recipient2AssocAccount:", recipient2TokenAccountPubkey.toString());
+    console.log("mint:", mint.publicKey.toString());
+    console.log("SenderAssocAccount:", senderTokenAccountPubkey.toString());
+    console.log("Sender Wallet Counter In PDA:", senderWalletCounterInPda.toString());
+    console.log("Sender Wallet Counter Out PDA:", senderWalletCounterOutPda.toString());
+    console.log("Recipient1 Wallet Counter In PDA:", recipient1walletCounterInPda.toString());
+    console.log("Recipient2 Wallet Counter In PDA:", recipient2walletCounterInPda.toString());
+    console.log("Recipient1 Wallet Counter Out PDA:", recipient1walletCounterOutPda.toString());
+    console.log("Recipient2 Wallet Counter Out PDA:", recipient2walletCounterOutPda.toString());
+    console.log("Mint Counter In PDA:", mintCounterInPda.toString());
+    console.log("Mint Counter Out PDA:", mintCounterOutPda.toString());
+    console.log("Global Program Data PDA:", globalProgramDataPda.toString());
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+    console.log("*".repeat(50));
+
+    let tokenAccount = await getAccount(provider.connection, recipientTokenAccountPubkey, undefined, TOKEN_2022_PROGRAM_ID);
+    const recipientBalanceBefore = Number(tokenAccount.amount);
+
+    const transaction = new Transaction().add(...[modifyComputeUnitsInstruction, multiTransfersInstruction]);
+    try {
+      console.log("Going to send transaction");
+      const txSig = await sendAndConfirmTransaction(
+        provider.connection,
+        transaction,
+        [sender]
+      );
+      console.log(`Multi Transfer Transaction Signature: ${txSig}`);
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+
+    tokenAccount = await getAccount(provider.connection, recipientTokenAccountPubkey, undefined, TOKEN_2022_PROGRAM_ID);
+    assert.equal(Number(tokenAccount.amount), recipientBalanceBefore + amount1);
   });
 });
